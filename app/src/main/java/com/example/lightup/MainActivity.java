@@ -1,5 +1,6 @@
 package com.example.lightup;
 
+
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -14,6 +15,8 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.larswerkman.holocolorpicker.ColorPicker;
 import com.larswerkman.holocolorpicker.SaturationBar;
+
+import java.util.ArrayList;
 
 
 /**
@@ -55,11 +58,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onColorChanged(int color) {
 
-                setUpCommand(picker.getColor());
                 // Here comes a method call to call the method to set the connection to the pi and the params
-                String actualColor = String.valueOf(picker.getColor());
-                Log.v("color", actualColor);
-                colorView.setText(actualColor);
+                Log.v("color", String.valueOf(picker.getColor()));
+                colorView.setText(String.valueOf(picker.getColor()));
+
+                int argb = picker.getColor();
+                ArrayList rgb = aarrggbbConverter(argb);
+                setUpCommand(rgb);
             }
         });
 
@@ -71,29 +76,44 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSaturationChanged(int saturation) {
 
-                setUpCommand(picker.getColor());
-                // Here comes a method call to call the method to set the connection to the pi and the params
-                String color = String.valueOf(picker.getColor());
-                Log.v("color", color);
-                colorView.setText(color);
+                // Here comes a method call to call the method to set the connection to the pi and hand params
+                Log.v("color", String.valueOf(picker.getColor()));
+                colorView.setText(String.valueOf(picker.getColor()));
+
+                int argb = picker.getColor();
+                ArrayList rgb = aarrggbbConverter(argb);
+                setUpCommand(rgb);
             }
         });
-
-
-
-        String color = String.valueOf(picker.getColor());
-        Log.v("color", color);
-        //Toast.makeText(color, Toast.LENGTH_SHORT).show();
     }
 
 
+    public ArrayList aarrggbbConverter(int argb) {
+        int r = (argb>>16)&0xFF;
+        int g = (argb>>8)&0xFF;
+        int b = (argb>>0)&0xFF;
+
+        ArrayList<Integer> rgb = new ArrayList<>();
+
+        rgb.add(r);
+        rgb.add(g);
+        rgb.add(b);
+
+        return rgb;
+    }
 
 
     /**
      * setUpSSH tries to setUp session and channel in which the command gets executed
-     * @param color int value which gets converted to RGB
+     * @param rgb ArrayList with converted RGB
      */
-    public void setUpCommand(int color) {
+    public void setUpCommand(ArrayList rgb) {
+
+        for (int i = 0; i <3; i++) {
+            Log.v("color", rgb.get(i).toString());
+        }
+
+
         final String command = "sudo python lightUp.py";
         new AsyncTask<Integer, Void, Void>(){
             @Override
