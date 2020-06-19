@@ -1,6 +1,7 @@
 package com.example.lightup;
 
 
+import android.annotation.SuppressLint;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -37,8 +38,8 @@ public class MainActivity extends AppCompatActivity {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
         final TextView colorView = findViewById(R.id.colorView);
 
-        final ColorPicker picker = (ColorPicker) findViewById(R.id.picker);
-        SaturationBar saturationBar = (SaturationBar) findViewById(R.id.saturationbar);
+        final ColorPicker picker = findViewById(R.id.picker);
+        SaturationBar saturationBar = findViewById(R.id.saturationbar);
 
         // add a saturationBar to the picker
         picker.addSaturationBar(saturationBar);
@@ -51,9 +52,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-        /**
-         * onColorChanged (which detects every slight deviation as a different number) calls the method to setUp a SSH connection and exec the handed command
-         */
+        // onColorChanged (which detects every slight deviation as a different number) calls the method to setUp a SSH connection and exec the handed command
         picker.setOnColorChangedListener(new ColorPicker.OnColorChangedListener() {
             @Override
             public void onColorChanged(int color) {
@@ -63,16 +62,14 @@ public class MainActivity extends AppCompatActivity {
                 colorView.setText(String.valueOf(picker.getColor()));
 
                 int argb = picker.getColor();
-                ArrayList rgb = aarrggbbConverter(argb);
+                ArrayList<Integer> rgb = aarrggbbConverter(argb);
                 setUpCommand(rgb);
             }
         });
 
 
-        /**
-         * onSaturationChanged (which detects every slight deviation as a different number) calls the method to setUp a SSH connection and exec the handed command
-         */
-       saturationBar.setOnSaturationChangedListener(new SaturationBar.OnSaturationChangedListener() {
+        // onSaturationChanged (which detects every slight deviation as a different number) calls the method to setUp a SSH connection and exec the handed command
+        saturationBar.setOnSaturationChangedListener(new SaturationBar.OnSaturationChangedListener() {
             @Override
             public void onSaturationChanged(int saturation) {
 
@@ -81,17 +78,17 @@ public class MainActivity extends AppCompatActivity {
                 colorView.setText(String.valueOf(picker.getColor()));
 
                 int argb = picker.getColor();
-                ArrayList rgb = aarrggbbConverter(argb);
+                ArrayList<Integer> rgb = aarrggbbConverter(argb);
                 setUpCommand(rgb);
             }
         });
     }
 
 
-    public ArrayList aarrggbbConverter(int argb) {
+    public ArrayList<Integer> aarrggbbConverter(int argb) {
         int r = (argb>>16)&0xFF;
         int g = (argb>>8)&0xFF;
-        int b = (argb>>0)&0xFF;
+        int b = (argb)&0xFF;
 
         ArrayList<Integer> rgb = new ArrayList<>();
 
@@ -107,7 +104,8 @@ public class MainActivity extends AppCompatActivity {
      * setUpSSH tries to setUp session and channel in which the command gets executed
      * @param rgb ArrayList with converted RGB
      */
-    public void setUpCommand(ArrayList rgb) {
+    @SuppressLint("StaticFieldLeak")
+    public void setUpCommand(ArrayList<Integer> rgb) {
 
         for (int i = 0; i <3; i++) {
             Log.v("color", rgb.get(i).toString());
@@ -116,6 +114,7 @@ public class MainActivity extends AppCompatActivity {
 
         final String command = "sudo python lightUp.py";
         new AsyncTask<Integer, Void, Void>(){
+            @SuppressLint("StaticFieldLeak")
             @Override
             protected Void doInBackground(Integer... params) {
                 try {
