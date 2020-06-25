@@ -5,7 +5,10 @@ import android.annotation.SuppressLint;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
@@ -21,7 +24,7 @@ import java.util.ArrayList;
 
 
 /**
- * MainActivity is already the whole App: simple design with intuitive ColorPicker, which continously
+ * MainActivity is already the whole App: simple design with intuitive ColorPicker, which continuously
  * updates the light and therefore sets a SSH session and connect tho the Pi
  */
 public class MainActivity extends AppCompatActivity {
@@ -31,10 +34,16 @@ public class MainActivity extends AppCompatActivity {
      */
     protected Session session;
 
+    private Button btn;
+    private final ArrayList<Integer> dark = new ArrayList<>();
+    private int currentColor;
+    private boolean off = false;
+
 
     /**
      * The MainActivity is created by this method (generated from a XML)
-     *
+     * It displays a continuous ColorPicker wheel to set the color with a toggle
+     * by releasing the wheel, the color will be set
      * @param savedInstanceState Bundle
      */
     @Override
@@ -47,6 +56,35 @@ public class MainActivity extends AppCompatActivity {
         final ColorPicker picker = findViewById(R.id.picker);
         SaturationBar saturationBar = findViewById(R.id.saturationbar);
 
+        dark.add(0);
+        dark.add(0);
+        dark.add(0);
+
+        /**
+         * opening a session to the pi where the channel can execute the commands
+         */
+        try {
+
+            /**
+             * Connection Variables
+             */
+            String user = "pi";
+            String host = "192.168.10.99";
+            String password = "raspberry";
+            int port = 22;
+
+            JSch jsch = new JSch();
+            session = jsch.getSession(user, host, port);
+            session.setPassword(password);
+            session.setConfig("StrictHostKeyChecking", "no");
+            session.setTimeout(10000);
+            session.connect();
+        }
+        catch (JSchException e) {
+            e.printStackTrace();
+        }
+
+
         // add a saturationBar to the picker
         picker.addSaturationBar(saturationBar);
 
@@ -56,21 +94,32 @@ public class MainActivity extends AppCompatActivity {
         //To set the old selected color
         picker.setOldCenterColor(picker.getColor());
 
+        btn = (Button) findViewById(R.id.powerButton);
 
-        // onColorChanged (which detects every slight deviation as a different number) calls the method to setUp a SSH connection and exec the handed command
+
+        /**
+         * onColorChanged (which detects every slight deviation as a different number) calls the method to setUp a SSH connection and exec the handed command
+         */
         picker.setOnColorChangedListener(new ColorPicker.OnColorChangedListener() {
             @Override
             public void onColorChanged(int color) {
 
+
                 // Here comes a method call to call the method to set the connection to the pi and the params
                 Log.v("color", String.valueOf(picker.getColor()));
                 colorView.setText(String.valueOf(picker.getColor()));
+                // the class varable gets always the current value of the wheel
+                currentColor = picker.getColor();
 
-                int argb = picker.getColor();
-                ArrayList<Integer> rgb = aarrggbbConverter(argb);
-                setUpCommand(rgb);
+                // check if the light is on
+                if (!off) {
+                    int argb = picker.getColor();
+                    ArrayList<Integer> rgb = aarrggbbConverter(argb);
+                    setUpCommand(rgb);
+                }
             }
         });
+
 
 
         // onSaturationChanged (which detects every slight deviation as a different number) calls the method to setUp a SSH connection and exec the handed command
@@ -78,18 +127,40 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSaturationChanged(int saturation) {
 
-                // Here comes a method call to call the method to set the connection to the pi and hand params
-                Log.v("color", String.valueOf(picker.getColor()));
-                colorView.setText(String.valueOf(picker.getColor()));
+                    // Here comes a method call to call the method to set the connection to the pi and hand params
+                    Log.v("color", String.valueOf(picker.getColor()));
+                    colorView.setText(String.valueOf(picker.getColor()));
+                    // the class varable gets always the current value of the wheel
+                    currentColor = picker.getColor();
 
-                int argb = picker.getColor();
-                ArrayList<Integer> rgb = aarrggbbConverter(argb);
-                setUpCommand(rgb);
+                    // check if the light is on
+                    if (!off) {
+                        int argb = picker.getColor();
+                        ArrayList<Integer> rgb = aarrggbbConverter(argb);
+                        setUpCommand(rgb);
+                }
+            }
+        });
+
+        // when button is clicked, the color goes either dark or the current color on which the wheel is set
+        btn.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onClick(View v) {
+                if (!off) {
+                    btn.setText("On");
+                    setUpCommand(dark);
+                    off = true;
+                }
+                else {
+                    btn.setText("Off");
+                    ArrayList<Integer> oldColor = aarrggbbConverter(currentColor);
+                    setUpCommand(oldColor);
+                    off = false;
+                }
             }
         });
     }
-
-
 
 
 
@@ -100,6 +171,7 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("StaticFieldLeak")
     public void setUpCommand(final ArrayList<Integer> rgb) {
 
+        /*
         for (int i = 0; i <3; i++) {
             Log.v("color", rgb.get(i).toString());
         }
@@ -107,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
         // testscript command to test circuit
         //final String command = "sudo python lightUp.py";
 
-        /*
+
         // command for the pin 17 RED
         String command1 = "pigs p 17 " + rgb.get(0).toString();
         // command for the pin 22 GREEN
@@ -146,9 +218,6 @@ public class MainActivity extends AppCompatActivity {
      * the login is used by the user default user pi
      */
     public void executeSSHcommand(ArrayList<Integer> rgb) {
-        String user = "pi";
-        String password = "raspberry";
-        String host = "192.168.10.99";
 
         // command for the pin 17 RED
         String color1 = "pigs p 17 " + rgb.get(0);
@@ -162,23 +231,18 @@ public class MainActivity extends AppCompatActivity {
         commands.add(color2);
         commands.add(color3);
 
-        int port = 22;
-        try {
-            JSch jsch = new JSch();
-            session = jsch.getSession(user, host, port);
-            session.setPassword(password);
-            session.setConfig("StrictHostKeyChecking", "no");
-            session.setTimeout(10000);
-            session.connect();
-            for (int i = 0; i < 3; i++) {
+        // setUp connection three times to execute three different commands
+        for (int i = 0; i < 3; i++) {
+            try {
                 ChannelExec channel = (ChannelExec) session.openChannel("exec");
                 channel.setCommand(commands.get(i));
                 channel.connect();
                 channel.disconnect();
+
+            } catch (JSchException e) {
+                Toast tst = Toast.makeText(this, "unfortunately, the connection failed", Toast.LENGTH_LONG);
+                e.printStackTrace();
             }
-        }
-        catch (JSchException e) {
-            e.printStackTrace();
         }
     }
 
@@ -194,6 +258,7 @@ public class MainActivity extends AppCompatActivity {
         int g = (argb>>8)&0xFF;
         int b = (argb)&0xFF;
 
+        // ArrayList with all the values in RGB
         ArrayList<Integer> rgb = new ArrayList<>();
 
         // adding to ArrayList
