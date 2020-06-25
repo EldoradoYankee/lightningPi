@@ -53,21 +53,19 @@ public class MainActivity extends AppCompatActivity {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
         final TextView colorView = findViewById(R.id.colorView);
 
-        final ColorPicker picker = findViewById(R.id.picker);
+        final ColorPicker picker;
+        picker = findViewById(R.id.picker);
         SaturationBar saturationBar = findViewById(R.id.saturationbar);
 
         dark.add(0);
         dark.add(0);
         dark.add(0);
 
-        /**
-         * opening a session to the pi where the channel can execute the commands
-         */
+
+         // opening a session to the pi where the channel can execute the commands
         try {
 
-            /**
-             * Connection Variables
-             */
+             // Connection Variables
             String user = "pi";
             String host = "192.168.10.99";
             String password = "raspberry";
@@ -97,10 +95,9 @@ public class MainActivity extends AppCompatActivity {
         btn = (Button) findViewById(R.id.powerButton);
 
 
-        /**
-         * onColorChanged (which detects every slight deviation as a different number) calls the method to setUp a SSH connection and exec the handed command
-         */
-        picker.setOnColorChangedListener(new ColorPicker.OnColorChangedListener() {
+
+         // onColorChanged (which detects every slight deviation as a different number) calls the method to setUp a SSH connection and exec the handed command
+         picker.setOnColorChangedListener(new ColorPicker.OnColorChangedListener() {
             @Override
             public void onColorChanged(int color) {
 
@@ -217,6 +214,7 @@ public class MainActivity extends AppCompatActivity {
      * set a session to the Pi so every executeSSHcommand can be executed by a connected session with a new JSch instance
      * the login is used by the user default user pi
      */
+    @SuppressLint("ShowToast")
     public void executeSSHcommand(ArrayList<Integer> rgb) {
 
         // command for the pin 17 RED
@@ -240,7 +238,7 @@ public class MainActivity extends AppCompatActivity {
                 channel.disconnect();
 
             } catch (JSchException e) {
-                Toast tst = Toast.makeText(this, "unfortunately, the connection failed", Toast.LENGTH_LONG);
+                Toast.makeText(this, "unfortunately, the connection failed", Toast.LENGTH_LONG);
                 e.printStackTrace();
             }
         }
