@@ -33,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
      * Session instance to connect to the pi and
      */
     protected Session session;
+    protected ColorPicker picker;
 
     private Button btn;
     private final ArrayList<Integer> dark = new ArrayList<>();
@@ -53,34 +54,12 @@ public class MainActivity extends AppCompatActivity {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
         final TextView colorView = findViewById(R.id.colorView);
 
-        final ColorPicker picker;
         picker = findViewById(R.id.picker);
         SaturationBar saturationBar = findViewById(R.id.saturationbar);
 
         dark.add(0);
         dark.add(0);
         dark.add(0);
-
-
-         // opening a session to the pi where the channel can execute the commands
-        try {
-
-             // Connection Variables
-            String user = "pi";
-            String host = "192.168.10.99";
-            String password = "raspberry";
-            int port = 22;
-
-            JSch jsch = new JSch();
-            session = jsch.getSession(user, host, port);
-            session.setPassword(password);
-            session.setConfig("StrictHostKeyChecking", "no");
-            session.setTimeout(10000);
-            session.connect();
-        }
-        catch (JSchException e) {
-            e.printStackTrace();
-        }
 
 
         // add a saturationBar to the picker
@@ -92,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
         //To set the old selected color
         picker.setOldCenterColor(picker.getColor());
 
-        btn = (Button) findViewById(R.id.powerButton);
+        btn = findViewById(R.id.powerButton);
 
 
 
@@ -100,13 +79,14 @@ public class MainActivity extends AppCompatActivity {
          picker.setOnColorChangedListener(new ColorPicker.OnColorChangedListener() {
             @Override
             public void onColorChanged(int color) {
-
+                // the class varable gets always the current value of the wheel
+                currentColor = picker.getColor();
 
                 // Here comes a method call to call the method to set the connection to the pi and the params
                 Log.v("color", String.valueOf(picker.getColor()));
+                Log.v("color", "currentColor is: " + currentColor);
                 colorView.setText(String.valueOf(picker.getColor()));
-                // the class varable gets always the current value of the wheel
-                currentColor = picker.getColor();
+
 
                 // check if the light is on
                 if (!off) {
@@ -123,12 +103,14 @@ public class MainActivity extends AppCompatActivity {
         saturationBar.setOnSaturationChangedListener(new SaturationBar.OnSaturationChangedListener() {
             @Override
             public void onSaturationChanged(int saturation) {
+                    // the class varable gets always the current value of the wheel
+                    currentColor = picker.getColor();
 
                     // Here comes a method call to call the method to set the connection to the pi and hand params
                     Log.v("color", String.valueOf(picker.getColor()));
+                    Log.v("color", "currentColor is: " + currentColor);
                     colorView.setText(String.valueOf(picker.getColor()));
-                    // the class varable gets always the current value of the wheel
-                    currentColor = picker.getColor();
+
 
                     // check if the light is on
                     if (!off) {
@@ -145,21 +127,28 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (!off) {
-                    btn.setText("On");
                     setUpCommand(dark);
+                    btn.setText("On");
                     off = true;
                 }
                 else {
-                    btn.setText("Off");
                     ArrayList<Integer> oldColor = aarrggbbConverter(currentColor);
                     setUpCommand(oldColor);
+                    btn.setText("Off");
                     off = false;
                 }
             }
         });
     }
 
-
+    /**
+     * sets the current color from the class variable everytime the activity gets displayed again
+     */
+    @Override
+    public void onResume(){
+        super.onResume();
+        picker.setColor(currentColor);
+    }
 
     /**
      * setUpSSH tries to setUp session and channel in which the command gets executed
@@ -232,18 +221,31 @@ public class MainActivity extends AppCompatActivity {
         // setUp connection three times to execute three different commands
         for (int i = 0; i < 3; i++) {
             try {
+
+                // Connection Variables
+                String user = "pi";
+                String host = "192.168.10.99";
+                String password = "raspberry";
+                int port = 22;
+
+                JSch jsch = new JSch();
+                session = jsch.getSession(user, host, port);
+                session.setPassword(password);
+                session.setConfig("StrictHostKeyChecking", "no");
+                session.setTimeout(10000);
+                session.connect();
                 ChannelExec channel = (ChannelExec) session.openChannel("exec");
                 channel.setCommand(commands.get(i));
                 channel.connect();
                 channel.disconnect();
-
+                // to not having opened multiple session, close after each command
+                session.disconnect();
             } catch (JSchException e) {
                 Toast.makeText(this, "unfortunately, the connection failed", Toast.LENGTH_LONG);
                 e.printStackTrace();
             }
         }
     }
-
 
 
     /**
