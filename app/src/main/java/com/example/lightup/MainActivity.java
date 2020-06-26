@@ -239,6 +239,7 @@ public class MainActivity extends AppCompatActivity {
                 channel.connect();
                 channel.disconnect();
                 // to not having opened multiple session, close after each command
+                // to not having opened multiple session, close after each command
                 session.disconnect();
             } catch (JSchException e) {
                 Toast.makeText(this, "unfortunately, the connection failed", Toast.LENGTH_LONG);
