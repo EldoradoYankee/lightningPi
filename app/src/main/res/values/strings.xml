@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">LightUp</string>
+    <string name="saturationbar">SaturationBar</string>
+    <string name="opacitybar">OpacityBar</string>
+    <string name="off">Off</string>
+    <string name="color">COLOR</string>
 </resources>

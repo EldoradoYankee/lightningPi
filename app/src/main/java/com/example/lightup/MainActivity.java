@@ -27,7 +27,7 @@ import java.util.ArrayList;
  * MainActivity is already the whole App: simple design with intuitive ColorPicker, which continuously
  * updates the light and therefore sets a SSH session and connect tho the Pi
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements Runnable {
 
     /**
      * Session instance to connect to the pi and
@@ -56,14 +56,16 @@ public class MainActivity extends AppCompatActivity {
 
         picker = findViewById(R.id.picker);
         SaturationBar saturationBar = findViewById(R.id.saturationbar);
+        //OpacityBar opacityBar = findViewById(R.id.opacitybar);
 
         dark.add(0);
         dark.add(0);
         dark.add(0);
 
 
-        // add a saturationBar to the picker
+        // add a saturationBar & opacityBar to the picker
         picker.addSaturationBar(saturationBar);
+        //picker.addOpacityBar(opacityBar);
 
         //to turn of showing the old color
         picker.setShowOldCenterColor(true);
@@ -120,6 +122,28 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+
+        /*opacityBar.setOnOpacityChangedListener(new OpacityBar.OnOpacityChangedListener() {
+            @Override
+            public void onOpacityChanged(int opacity) {
+                // the class varable gets always the current value of the wheel
+                currentColor = picker.getColor();
+
+                // Here comes a method call to call the method to set the connection to the pi and hand params
+                Log.v("color", String.valueOf(picker.getColor()));
+                Log.v("color", "currentColor is: " + currentColor);
+                colorView.setText(String.valueOf(picker.getColor()));
+
+
+                // check if the light is on
+                if (!off) {
+                    int argb = picker.getColor();
+                    ArrayList<Integer> rgb = aarrggbbConverter(argb);
+                    setUpCommand(rgb);
+                }
+            }
+        });*/
 
         // when button is clicked, the color goes either dark or the current color on which the wheel is set
         btn.setOnClickListener(new View.OnClickListener() {
@@ -219,34 +243,32 @@ public class MainActivity extends AppCompatActivity {
         commands.add(color3);
 
         // setUp connection three times to execute three different commands
-        for (int i = 0; i < 3; i++) {
-            try {
 
-                // Connection Variables
-                String user = "pi";
-                String host = "192.168.10.99";
-                String password = "raspberry";
-                int port = 22;
+        try {
+            // Connection Variables
+            String user = "pi";
+            String host = "192.168.10.99";
+            String password = "raspberry";
+            int port = 22;
 
-                JSch jsch = new JSch();
-                session = jsch.getSession(user, host, port);
-                session.setPassword(password);
-                session.setConfig("StrictHostKeyChecking", "no");
-                session.setTimeout(10000);
-                session.connect();
-                ChannelExec channel = (ChannelExec) session.openChannel("exec");
-                channel.setCommand(commands.get(i));
-                channel.connect();
-                channel.disconnect();
-                // to not having opened multiple session, close after each command
-                // to not having opened multiple session, close after each command
-                session.disconnect();
-            } catch (JSchException e) {
-                Toast.makeText(this, "unfortunately, the connection failed", Toast.LENGTH_LONG);
-                e.printStackTrace();
-            }
+            JSch jsch = new JSch();
+            session = jsch.getSession(user, host, port);
+            session.setPassword(password);
+            session.setConfig("StrictHostKeyChecking", "no");
+            session.setTimeout(10000);
+            session.connect();
+            ChannelExec channel = (ChannelExec) session.openChannel("exec");
+            channel.setCommand("commandSkript.sh " + color1 + color2 + color3);
+            channel.connect();
+            channel.disconnect();
+            // to not having opened multiple session, close after each commad
+            session.disconnect();
+        } catch (JSchException e) {
+            Toast.makeText(this, "unfortunately, the connection failed", Toast.LENGTH_LONG);
+            e.printStackTrace();
         }
     }
+
 
 
     /**
@@ -268,5 +290,10 @@ public class MainActivity extends AppCompatActivity {
         rgb.add(b);
 
         return rgb;
+    }
+
+    @Override
+    public void run() {
+        // Zeitsteuerung
     }
 }
