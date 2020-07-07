@@ -18,6 +18,7 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.larswerkman.holocolorpicker.ColorPicker;
+import com.larswerkman.holocolorpicker.OpacityBar;
 import com.larswerkman.holocolorpicker.SaturationBar;
 
 import java.util.ArrayList;
@@ -36,6 +37,8 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     protected ColorPicker picker;
 
     private Button btn;
+    private TextView colorView;
+    private TextView commandView;
     private final ArrayList<Integer> dark = new ArrayList<>();
     private int currentColor;
     private boolean off = false;
@@ -52,11 +55,12 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-        final TextView colorView = findViewById(R.id.colorView);
+        colorView = findViewById(R.id.colorView);
+        commandView = findViewById(R.id.commandView);
 
         picker = findViewById(R.id.picker);
         SaturationBar saturationBar = findViewById(R.id.saturationbar);
-        //OpacityBar opacityBar = findViewById(R.id.opacitybar);
+        OpacityBar opacityBar = findViewById(R.id.opacitybar);
 
         dark.add(0);
         dark.add(0);
@@ -124,7 +128,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         });
 
 
-        /*opacityBar.setOnOpacityChangedListener(new OpacityBar.OnOpacityChangedListener() {
+        opacityBar.setOnOpacityChangedListener(new OpacityBar.OnOpacityChangedListener() {
             @Override
             public void onOpacityChanged(int opacity) {
                 // the class varable gets always the current value of the wheel
@@ -143,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                     setUpCommand(rgb);
                 }
             }
-        });*/
+        });
 
         // when button is clicked, the color goes either dark or the current color on which the wheel is set
         btn.setOnClickListener(new View.OnClickListener() {
@@ -243,32 +247,33 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         commands.add(color3);
 
         // setUp connection three times to execute three different commands
+            try {
+                // Connection Variables
+                String user = "pi";
+                //String host = "192.168.10.99";
+                String host = "192.168.178.51";
+                String password = "raspberry";
+                int port = 22;
 
-        try {
-            // Connection Variables
-            String user = "pi";
-            String host = "192.168.10.99";
-            String password = "raspberry";
-            int port = 22;
 
-            JSch jsch = new JSch();
-            session = jsch.getSession(user, host, port);
-            session.setPassword(password);
-            session.setConfig("StrictHostKeyChecking", "no");
-            session.setTimeout(10000);
-            session.connect();
-            ChannelExec channel = (ChannelExec) session.openChannel("exec");
-            channel.setCommand("commandSkript.sh " + color1 + color2 + color3);
-            channel.connect();
-            channel.disconnect();
-            // to not having opened multiple session, close after each commad
-            session.disconnect();
-        } catch (JSchException e) {
-            Toast.makeText(this, "unfortunately, the connection failed", Toast.LENGTH_LONG);
-            e.printStackTrace();
+                JSch jsch = new JSch();
+                session = jsch.getSession(user, host, port);
+                session.setPassword(password);
+                session.setConfig("StrictHostKeyChecking", "no");
+                session.setTimeout(10000);
+                session.connect();
+                ChannelExec channel = (ChannelExec) session.openChannel("exec");
+                commandView.setText("python /home/pi/commandSkript.py" + " " + color1 + " " + color2 + " " + color3);
+                channel.setCommand("python /home/pi/commandSkript.py" + " " + color1 + " " + color2 + " " + color3);
+                channel.connect();
+                channel.disconnect();
+                // to not having opened multiple session, close after each commad
+                session.disconnect();
+            } catch (JSchException e) {
+                Toast.makeText(this, "unfortunately, the connection failed", Toast.LENGTH_LONG);
+                e.printStackTrace();
+            }
         }
-    }
-
 
 
     /**
