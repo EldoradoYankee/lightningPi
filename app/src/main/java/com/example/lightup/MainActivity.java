@@ -2,11 +2,12 @@ package com.example.lightup;
 
 
 import android.annotation.SuppressLint;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -18,9 +19,10 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.larswerkman.holocolorpicker.ColorPicker;
-import com.larswerkman.holocolorpicker.OpacityBar;
 import com.larswerkman.holocolorpicker.SaturationBar;
+import com.larswerkman.holocolorpicker.ValueBar;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 
 
@@ -28,7 +30,7 @@ import java.util.ArrayList;
  * MainActivity is already the whole App: simple design with intuitive ColorPicker, which continuously
  * updates the light and therefore sets a SSH session and connect tho the Pi
  */
-public class MainActivity extends AppCompatActivity implements Runnable {
+public class MainActivity extends AppCompatActivity {
 
     /**
      * Session instance to connect to the pi and
@@ -39,10 +41,21 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     private Button btn;
     private TextView colorView;
     private TextView commandView;
+    private EditText plain_text_input;
     private final ArrayList<Integer> dark = new ArrayList<>();
     private int currentColor;
     private boolean off = false;
 
+    private Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+    private String piip;
+
+    /**
+     * SharedPrefernces
+     */
+    private SharedPreferences sharedPreferences;
+    private static final String COLOR_SHARED_PREFS = "sharedColor";
+    private static final String COLOR = "color";
+    private static final String IP = "ip";
 
     /**
      * The MainActivity is created by this method (generated from a XML)
@@ -60,16 +73,22 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
         picker = findViewById(R.id.picker);
         SaturationBar saturationBar = findViewById(R.id.saturationbar);
-        OpacityBar opacityBar = findViewById(R.id.opacitybar);
+        ValueBar valueBar = findViewById(R.id.valuebar);
+
+
+        plain_text_input = findViewById(R.id.plain_text_input);
 
         dark.add(0);
         dark.add(0);
         dark.add(0);
 
 
-        // add a saturationBar & opacityBar to the picker
+        // add a saturationBar & valueBar to the picker
         picker.addSaturationBar(saturationBar);
-        //picker.addOpacityBar(opacityBar);
+        picker.addValueBar(valueBar);
+
+        valueBar.setValue(20);
+        saturationBar.setSaturation(100);
 
         //to turn of showing the old color
         picker.setShowOldCenterColor(true);
@@ -78,28 +97,16 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         picker.setOldCenterColor(picker.getColor());
 
         btn = findViewById(R.id.powerButton);
+        Button buttonIP = findViewById(R.id.buttonIP);
 
 
 
-         // onColorChanged (which detects every slight deviation as a different number) calls the method to setUp a SSH connection and exec the handed command
+        // onColorChanged (which detects every slight deviation as a different number) calls the method to setUp a SSH connection and exec the handed command
          picker.setOnColorChangedListener(new ColorPicker.OnColorChangedListener() {
             @Override
             public void onColorChanged(int color) {
-                // the class varable gets always the current value of the wheel
-                currentColor = picker.getColor();
-
-                // Here comes a method call to call the method to set the connection to the pi and the params
-                Log.v("color", String.valueOf(picker.getColor()));
-                Log.v("color", "currentColor is: " + currentColor);
-                colorView.setText(String.valueOf(picker.getColor()));
-
-
-                // check if the light is on
-                if (!off) {
-                    int argb = picker.getColor();
-                    ArrayList<Integer> rgb = aarrggbbConverter(argb);
-                    setUpCommand(rgb);
-                }
+                // Method changes the Views in the App & calls the setUpCommand Method
+                onColorChangedAction();
             }
         });
 
@@ -109,43 +116,17 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         saturationBar.setOnSaturationChangedListener(new SaturationBar.OnSaturationChangedListener() {
             @Override
             public void onSaturationChanged(int saturation) {
-                    // the class varable gets always the current value of the wheel
-                    currentColor = picker.getColor();
-
-                    // Here comes a method call to call the method to set the connection to the pi and hand params
-                    Log.v("color", String.valueOf(picker.getColor()));
-                    Log.v("color", "currentColor is: " + currentColor);
-                    colorView.setText(String.valueOf(picker.getColor()));
-
-
-                    // check if the light is on
-                    if (!off) {
-                        int argb = picker.getColor();
-                        ArrayList<Integer> rgb = aarrggbbConverter(argb);
-                        setUpCommand(rgb);
-                }
+                // Method changes the Views in the App & calls the setUpCommand Method
+                onColorChangedAction();
             }
         });
 
 
-        opacityBar.setOnOpacityChangedListener(new OpacityBar.OnOpacityChangedListener() {
+        valueBar.setOnValueChangedListener(new ValueBar.OnValueChangedListener() {
             @Override
-            public void onOpacityChanged(int opacity) {
-                // the class varable gets always the current value of the wheel
-                currentColor = picker.getColor();
-
-                // Here comes a method call to call the method to set the connection to the pi and hand params
-                Log.v("color", String.valueOf(picker.getColor()));
-                Log.v("color", "currentColor is: " + currentColor);
-                colorView.setText(String.valueOf(picker.getColor()));
-
-
-                // check if the light is on
-                if (!off) {
-                    int argb = picker.getColor();
-                    ArrayList<Integer> rgb = aarrggbbConverter(argb);
-                    setUpCommand(rgb);
-                }
+            public void onValueChanged(int value) {
+                // Method changes the Views in the App & calls the setUpCommand Method
+                onColorChangedAction();
             }
         });
 
@@ -167,16 +148,42 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                 }
             }
         });
+
+        buttonIP.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setPIIP();
+            }
+        });
     }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        sharedPreferences = getSharedPreferences(COLOR_SHARED_PREFS, MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putInt(COLOR, currentColor);
+        editor.putString(IP, plain_text_input.getText().toString());
+        editor.apply();
+    }
+
 
     /**
      * sets the current color from the class variable everytime the activity gets displayed again
      */
+    @SuppressLint("ShowToast")
     @Override
     public void onResume(){
         super.onResume();
+        // picks up the currentColor again
+        sharedPreferences = getSharedPreferences(COLOR_SHARED_PREFS, MODE_PRIVATE);
+        currentColor = sharedPreferences.getInt(COLOR, -6000);
+        plain_text_input.setText(sharedPreferences.getString(IP, "192.168.10.99"));
         picker.setColor(currentColor);
+        setPIIP();
     }
+
 
     /**
      * setUpSSH tries to setUp session and channel in which the command gets executed
@@ -184,31 +191,6 @@ public class MainActivity extends AppCompatActivity implements Runnable {
      */
     @SuppressLint("StaticFieldLeak")
     public void setUpCommand(final ArrayList<Integer> rgb) {
-
-        /*
-        for (int i = 0; i <3; i++) {
-            Log.v("color", rgb.get(i).toString());
-        }
-
-        // testscript command to test circuit
-        //final String command = "sudo python lightUp.py";
-
-
-        // command for the pin 17 RED
-        String command1 = "pigs p 17 " + rgb.get(0).toString();
-        // command for the pin 22 GREEN
-        String command2 = "pigs p 22 " + rgb.get(1).toString();
-        // command for the pin 24 BLUE
-        String command3 = "pigs p 24 " + rgb.get(2).toString();
-
-        ArrayList<String> commands = new ArrayList<>();
-
-        commands.add(command1);
-        commands.add(command2);
-        commands.add(command3);
-         */
-
-
 
         // to do this simultaneously apart from this main_activity thread, a new one is created
         new AsyncTask<Integer, Void, Void>(){
@@ -225,36 +207,36 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         }.execute(1);
     }
 
+
+
+
     /**
-     * Once the session has connected, a new channel gets opened. (exec is a command for the bash, that sets the session to an executable command)
+     * Once the session has connected, a new channel gets opened. (exec is a command for the bash, that sets into the session an executable command)
      * it is the channel that gets the effective command
      * set a session to the Pi so every executeSSHcommand can be executed by a connected session with a new JSch instance
      * the login is used by the user default user pi
      */
-    @SuppressLint("ShowToast")
+    @SuppressLint({"ShowToast", "SetTextI18n"})
     public void executeSSHcommand(ArrayList<Integer> rgb) {
 
-        // command for the pin 17 RED
-        String color1 = "pigs p 17 " + rgb.get(0);
-        // command for the pin 22 GREEN
-        String color2 = "pigs p 22 " + rgb.get(1);
-        // command for the pin 24 BLUE
-        String color3 = "pigs p 24 " + rgb.get(2);
+        // value for the pin 17 RED
+        String color1 = String.valueOf(rgb.get(0));
+        // value for the pin 22 GREEN
+        String color2 = String.valueOf(rgb.get(1));
+        // value for the pin 24 BLUE
+        String color3 = String.valueOf(rgb.get(2));
 
-        ArrayList<String> commands = new ArrayList<>();
-        commands.add(color1);
-        commands.add(color2);
-        commands.add(color3);
 
-        // setUp connection three times to execute three different commands
+        // setUp connection three times to execute the commandSkript
             try {
                 // Connection Variables
+                String host = piip;
                 String user = "pi";
-                //String host = "192.168.10.99";
-                String host = "192.168.178.51";
                 String password = "raspberry";
+                // Testumgebung
+                //String host = "192.168.10.99";
+                //String host = "192.168.178.51";
                 int port = 22;
-
 
                 JSch jsch = new JSch();
                 session = jsch.getSession(user, host, port);
@@ -297,8 +279,37 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         return rgb;
     }
 
-    @Override
-    public void run() {
-        // Zeitsteuerung
+
+
+    public void onColorChangedAction() {
+        Timestamp currentTimeStamp = new Timestamp(System.currentTimeMillis());
+        if (currentTimeStamp.getTime() > timestamp.getTime() + 1000) {
+
+            // the class varable gets always the current value of the wheel
+            currentColor = picker.getColor();
+
+            // Here is the colorView set with the current color
+            colorView.setText(String.valueOf(currentColor));
+
+            // check if the light is on & send the command
+            if (!off) {
+                int argb = picker.getColor();
+                ArrayList<Integer> rgb = aarrggbbConverter(argb);
+                setUpCommand(rgb);
+            }
+            timestamp = currentTimeStamp;
+        }
+    }
+
+    public void setPIIP() {
+        piip = plain_text_input.getText().toString();
+    }
+
+    /**
+     * getter
+     * @return String
+     */
+    public String getPIIP() {
+        return piip;
     }
 }

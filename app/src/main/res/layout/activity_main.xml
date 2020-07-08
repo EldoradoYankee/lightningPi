@@ -33,8 +33,8 @@
 
     <TextView
         android:id="@+id/colorView"
-        android:layout_width="255dp"
-        android:layout_height="19dp"
+        android:layout_width="62dp"
+        android:layout_height="24dp"
         android:text="@string/color"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -55,8 +55,8 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.051" />
 
-    <com.larswerkman.holocolorpicker.OpacityBar
-        android:id="@+id/opacitybar"
+    <com.larswerkman.holocolorpicker.ValueBar
+        android:id="@+id/valuebar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -79,10 +79,10 @@
         app:layout_constraintVertical_bias="0.765" />
 
     <TextView
-        android:id="@+id/opacitybarText"
+        android:id="@+id/valuebarText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/opacitybar"
+        android:text="@string/valuebar"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.496"
@@ -101,6 +101,42 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.693" />
+
+    <EditText
+        android:id="@+id/plain_text_input"
+        android:layout_width="130dp"
+        android:layout_height="45dp"
+        android:inputType="text"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.156"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.055" />
+
+    <TextView
+        android:id="@+id/textViewIP"
+        android:layout_width="109dp"
+        android:layout_height="21dp"
+        android:text="Your IP Address"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.175"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.117" />
+
+    <Button
+        android:id="@+id/buttonIP"
+        android:layout_width="56dp"
+        android:layout_height="39dp"
+        android:text="OK"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.063" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

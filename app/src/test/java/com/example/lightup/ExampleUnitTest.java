@@ -13,7 +13,8 @@ import static org.junit.Assert.assertEquals;
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  */
-public class ExampleUnitTest {
+public class ExampleUnitTest extends MainActivity {
+
 
     @Test
     public void addition_isCorrect() {
@@ -47,4 +48,12 @@ public class ExampleUnitTest {
         }
         assertEquals("if the lights are off the text should say \"Off\"\"", "Off", ((Button) mainActivity.findViewById(R.id.powerButton)).getText());
     }
+
+
+    @Test
+    public void testGetPIIP() {
+        assertEquals("192.168.10.99", getPIIP());
+    }
+
+
 }
